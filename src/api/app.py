@@ -18,7 +18,8 @@ class Invoice(BaseModel):
     reliability_score: float
 
 @app.post("/predict")
-def data = invoice.dict()
+def predict(invoice: Invoice):
+data = invoice.dict()
 
 df = pd.DataFrame([[
     data["invoice_amount"],
