@@ -29,6 +29,7 @@ class Invoice(BaseModel):
 def predict(invoice: Invoice, model_version: str = Query("v2")):
 
     data = invoice.dict()
+
     features = [[
         data["invoice_amount"],
         data["avg_delay_days"],
@@ -38,6 +39,7 @@ def predict(invoice: Invoice, model_version: str = Query("v2")):
         data["reliability_score"]
     ]]
 
+    # Model selection
     if model_version == "v1":
         probability = model_v1.predict_proba(features)[0][1]
         used_model = "v1"
@@ -45,26 +47,33 @@ def predict(invoice: Invoice, model_version: str = Query("v2")):
         probability = model_v2.predict_proba(features)[0][1]
         used_model = "v2"
 
-    return {
-        "late_payment_probability": float(probability),
-        "recommended_action": "Early reminder" if probability > 0.7 else "Normal reminder",
-        "tone": "Firm" if probability > 0.7 else "Friendly",
-        "model_version": used_model
-    }
-    
+    # Business logic
+    recommended_action = "Early reminder" if probability > 0.7 else "Normal reminder"
+    tone = "Firm" if probability > 0.7 else "Friendly"
+
+    # 🔥 SAVE TO DATABASE
     db = SessionLocal()
 
-new_prediction = Prediction(
-    invoice_amount=data["invoice_amount"],
-    probability=float(probability),
-    tone=tone,
-    model_version=model_version
-)
+    new_prediction = Prediction(
+        invoice_amount=data["invoice_amount"],
+        probability=float(probability),
+        tone=tone,
+        model_version=used_model
+    )
 
-db.add(new_prediction)
-db.commit()
-db.close()
+    db.add(new_prediction)
+    db.commit()
+    db.close()
 
+    # Return response
+    return {
+        "late_payment_probability": float(probability),
+        "recommended_action": recommended_action,
+        "tone": tone,
+        "model_version": used_model
+    }
+
+        
     
 @app.get("/stats")
 def get_stats():
