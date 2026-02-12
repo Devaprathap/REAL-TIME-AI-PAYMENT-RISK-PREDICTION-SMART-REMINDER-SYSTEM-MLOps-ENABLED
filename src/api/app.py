@@ -3,6 +3,8 @@ import joblib
 import pandas as pd
 from pydantic import BaseModel
 import joblib
+import logging
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
@@ -23,6 +25,10 @@ def predict(invoice: Invoice):
 
     # Convert request to dictionary
     data = invoice.dict()
+    
+    
+    # 🔹 Log incoming request
+    logging.info(f"Prediction requested: {data}")
 
     # Create feature list in correct order
     features = [[
@@ -36,7 +42,10 @@ def predict(invoice: Invoice):
 
     # Get probability
     probability = model.predict_proba(features)[0][1]
-
+    
+    # 🔹 Log model output
+    logging.info(f"Probability: {probability}")
+    
     # Decision logic
     if probability > 0.7:
         reminder = "Send early reminder"
