@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 from pydantic import BaseModel
 import joblib
+from .database import SessionLocal, Prediction
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -45,7 +46,7 @@ def predict(invoice: Invoice):
     
     # 🔹 Log model output
     logging.info(f"Probability: {probability}")
-    
+
     # Decision logic
     if probability > 0.7:
         reminder = "Send early reminder"
@@ -53,6 +54,20 @@ def predict(invoice: Invoice):
     else:
         reminder = "Normal reminder"
         tone = "Friendly"
+     # 🔥 ADD DATABASE CODE HERE (BEFORE RETURN)
+
+    db = SessionLocal()
+
+    new_prediction = Prediction(
+        invoice_amount=data["invoice_amount"],
+        probability=float(probability),
+        tone=tone,
+        model_version="v1.0"
+    )
+
+    db.add(new_prediction)
+    db.commit()
+    db.close()
 
     return {
         "late_payment_probability": float(probability),
