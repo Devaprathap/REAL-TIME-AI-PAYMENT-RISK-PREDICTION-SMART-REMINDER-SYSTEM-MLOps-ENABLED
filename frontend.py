@@ -2,42 +2,36 @@ import streamlit as st
 import requests
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="CollectIQ - Payment Risk AI", layout="wide")
+st.set_page_config(page_title="CollectIQ AI", layout="wide")
 
-st.title("💳 CollectIQ - Real-Time Payment Risk Intelligence")
-st.markdown("AI-powered invoice risk prediction and smart reminder system")
+st.title("💰 CollectIQ – AI Payment Risk Prediction System")
+st.markdown("Real-Time Invoice Risk Intelligence Engine")
 
-st.divider()
-model_version = st.selectbox(
-    "Select Model Version",
-    ["v1"]
-)
+API_URL = "https://collectiq-api.onrender.com"
 
-# -------------------------
+# ----------------------------
 # INPUT SECTION
-# -------------------------
+# ----------------------------
 
-st.subheader("🧾 Enter Invoice Details")
+st.header("📥 Enter Invoice Details")
 
 col1, col2 = st.columns(2)
 
 with col1:
     invoice_amount = st.number_input("Invoice Amount", min_value=0.0, value=5000.0)
-    avg_delay_days = st.number_input("Average Delay Days", min_value=0.0, value=2.0)
-    num_past_invoices = st.number_input("Number of Past Invoices", min_value=0.0, value=5.0)
+    avg_delay_days = st.number_input("Average Delay (Days)", min_value=0.0, value=5.0)
+    num_past_invoices = st.number_input("Number of Past Invoices", min_value=0.0, value=10.0)
 
 with col2:
-    invoice_gap_days = st.number_input("Invoice Gap Days", min_value=0.0, value=30.0)
+    invoice_gap_days = st.number_input("Invoice Gap (Days)", min_value=0.0, value=30.0)
     industry_category = st.number_input("Industry Category (Encoded)", min_value=0.0, value=1.0)
-    reliability_score = st.number_input("Reliability Score", min_value=0.0, value=0.8)
+    reliability_score = st.number_input("Reliability Score (0–1)", min_value=0.0, max_value=1.0, value=0.8)
 
-predict_button = st.button("🔍 Predict Payment Risk")
+# ----------------------------
+# PREDICTION BUTTON
+# ----------------------------
 
-# -------------------------
-# PREDICTION SECTION
-# -------------------------
-
-if predict_button:
+if st.button("🔮 Predict Risk"):
 
     payload = {
         "invoice_amount": invoice_amount,
@@ -49,112 +43,99 @@ if predict_button:
     }
 
     try:
-       response = requests.post(
-            f"https://collectiq-api.onrender.com/predict?model_version={model_version}",
-            json=payload,
-            timeout=15
-        )
+        response = requests.post(f"{API_URL}/predict", json=payload, timeout=10)
 
         if response.status_code == 200:
-
             result = response.json()
 
-            st.subheader("📊 Prediction Result")
+            prob = result.get("late_payment_probability", 0)
+            action = result.get("recommended_action", "N/A")
+            tone = result.get("tone", "N/A")
+            model_version = result.get("model_version", "N/A")
 
-            probability = result.get("late_payment_probability", None)
-
-            if probability is not None:
-
-                tone = result.get("tone", "N/A")
-                action = result.get("recommended_action", "N/A")
-                model_version = result.get("model_version", "N/A")
-
-                # Risk Gauge
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=probability * 100,
-                    title={"text": "Late Payment Risk (%)"},
-                    gauge={
-                        "axis": {"range": [0, 100]},
-                        "bar": {"color": "red"},
-                        "steps": [
-                            {"range": [0, 40], "color": "green"},
-                            {"range": [40, 70], "color": "yellow"},
-                            {"range": [70, 100], "color": "red"},
-                        ],
-                    },
-                ))
-
-                st.plotly_chart(fig, width="stretch")
-
-                col1, col2, col3 = st.columns(3)
-
-                col1.metric("Tone", tone)
-                col2.metric("Recommended Action", action)
-                col3.metric("Model Version", model_version)
-
+            # ----------------------------
+            # RISK LEVEL LOGIC
+            # ----------------------------
+            if prob < 0.3:
+                risk_label = "🟢 Low Risk"
+            elif prob < 0.7:
+                risk_label = "🟡 Medium Risk"
             else:
-                st.error("❌ Probability not found in API response")
+                risk_label = "🔴 High Risk"
+
+            st.subheader("📊 Prediction Result")
+            st.success(f"Risk Level: {risk_label}")
+            st.write(f"**Probability:** {prob:.2%}")
+            st.write(f"**Recommended Action:** {action}")
+            st.write(f"**Tone:** {tone}")
+            st.write(f"**Model Version Used:** {model_version}")
+
+            # ----------------------------
+            # GAUGE CHART
+            # ----------------------------
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=prob * 100,
+                number={'suffix': "%"},
+                gauge={
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "darkred"},
+                    'steps': [
+                        {'range': [0, 30], 'color': "lightgreen"},
+                        {'range': [30, 70], 'color': "yellow"},
+                        {'range': [70, 100], 'color': "red"}
+                    ]
+                },
+                title={'text': "Late Payment Risk"}
+            ))
+
+            st.plotly_chart(fig, width='stretch')
 
         else:
-            st.error(f"API Error: {response.status_code}")
+            st.error("❌ Prediction failed. Check API logs.")
 
     except Exception as e:
-        st.error("⚠️ Connection Error")
+        st.error("🚨 Connection Error")
         st.write(str(e))
 
-# -------------------------
-# ANALYTICS SECTION
-# -------------------------
+# ----------------------------
+# SYSTEM STATS
+# ----------------------------
 
 st.divider()
-st.subheader("📈 Business Analytics")
+st.header("📈 Live System Analytics")
 
 try:
-    stats_response = requests.get(
-        "https://collectiq-api.onrender.com/stats",
-        timeout=10
-    )
-
+    stats_response = requests.get(f"{API_URL}/stats", timeout=5)
     if stats_response.status_code == 200:
-
         stats = stats_response.json()
 
         col1, col2, col3 = st.columns(3)
 
         col1.metric("Total Predictions", stats.get("total_predictions", 0))
-        col2.metric("Average Risk", f"{stats.get('average_risk', 0):.3f}")
+        col2.metric("Average Risk", f"{stats.get('average_risk', 0):.2%}")
         col3.metric("High Risk Cases", stats.get("high_risk_predictions", 0))
 
     else:
-        st.warning("Stats not available")
+        st.warning("Stats unavailable")
 
 except:
-    st.warning("Could not load stats")
+    st.warning("Live stats unavailable")
+
+# ----------------------------
+# BUSINESS EXPLANATION PANEL
+# ----------------------------
 
 st.divider()
-st.subheader("📊 Feature Importance")
+st.header("🧠 How CollectIQ Works")
 
-try:
-    fi_response = requests.get(
-        "https://collectiq-api.onrender.com/feature-importance"
-    )
+st.markdown("""
+1. Invoice data is submitted in real time.
+2. AI model predicts late payment probability.
+3. System recommends reminder tone.
+4. All predictions are stored in database.
+5. Live dashboard tracks system performance.
+""")
 
-    if fi_response.status_code == 200:
-        fi_data = fi_response.json()
-
-        if "feature_importance" in fi_data:
-            import pandas as pd
-
-            df_fi = pd.DataFrame(
-                fi_data["feature_importance"].items(),
-                columns=["Feature", "Importance"]
-            ).sort_values(by="Importance", ascending=False)
-
-            st.bar_chart(df_fi.set_index("Feature"), width="stretch")
-
-    else:
-        st.info("Feature importance unavailable")
-
-except:
-    st.warning("Could not fetch feature importance")
+st.markdown("---")
+st.caption("CollectIQ – Real-Time AI Payment Risk Intelligence | Built with FastAPI + XGBoost + Streamlit")

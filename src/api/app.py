@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Query
 import joblib
 import pandas as pd
 from pydantic import BaseModel
@@ -25,14 +26,9 @@ class Invoice(BaseModel):
 
 
 @app.post("/predict")
-def predict(invoice: Invoice, model_version: str = "v1"):
+def predict(invoice: Invoice, model_version: str = Query("v2")):
+
     data = invoice.dict()
-
-    if model_version == "v2":
-        model = model_v2
-    else:
-        model = model_v1  # fallback (until v2 added)
-
     features = [[
         data["invoice_amount"],
         data["avg_delay_days"],
@@ -42,17 +38,19 @@ def predict(invoice: Invoice, model_version: str = "v1"):
         data["reliability_score"]
     ]]
 
-    probability = model.predict_proba(features)[0][1]
-
-    tone = "Friendly" if probability < 0.3 else "Strict"
+    if model_version == "v1":
+        probability = model_v1.predict_proba(features)[0][1]
+        used_model = "v1"
+    else:
+        probability = model_v2.predict_proba(features)[0][1]
+        used_model = "v2"
 
     return {
         "late_payment_probability": float(probability),
-        "recommended_action": "Normal reminder" if probability < 0.3 else "Escalate",
-        "tone": tone,
-        "model_version": model_version
+        "recommended_action": "Early reminder" if probability > 0.7 else "Normal reminder",
+        "tone": "Firm" if probability > 0.7 else "Friendly",
+        "model_version": used_model
     }
-
     
     
 @app.get("/stats")
