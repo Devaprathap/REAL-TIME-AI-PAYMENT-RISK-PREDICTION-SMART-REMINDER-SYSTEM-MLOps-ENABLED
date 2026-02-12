@@ -52,6 +52,19 @@ def predict(invoice: Invoice, model_version: str = Query("v2")):
         "model_version": used_model
     }
     
+    db = SessionLocal()
+
+new_prediction = Prediction(
+    invoice_amount=data["invoice_amount"],
+    probability=float(probability),
+    tone=tone,
+    model_version=model_version
+)
+
+db.add(new_prediction)
+db.commit()
+db.close()
+
     
 @app.get("/stats")
 def get_stats():
