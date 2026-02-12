@@ -7,28 +7,8 @@ import joblib
 from .database import SessionLocal, Prediction
 import logging
 logging.basicConfig(level=logging.INFO)
-import os
-import smtplib
-from email.mime.text import MIMEText
-
 
 app = FastAPI()
-
-def send_email(to_email, subject, body):
-    sender = os.getenv("EMAIL_USER")
-    password = os.getenv("EMAIL_PASS")
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = to_email
-
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender, password)
-            server.sendmail(sender, to_email, msg.as_string())
-    except Exception as e:
-        logging.error(f"Email sending failed: {e}")
 
 model = joblib.load("models/xgboost_model.pkl")
 model_v1 = joblib.load("models/xgboost_model.pkl")
@@ -43,8 +23,7 @@ class Invoice(BaseModel):
     invoice_gap_days: float
     industry_category: float
     reliability_score: float
-    client_email: str
-
+   
 @app.post("/predict")
 def predict(invoice: Invoice, model_version: str = Query("v2")):
 
@@ -66,17 +45,7 @@ def predict(invoice: Invoice, model_version: str = Query("v2")):
     else:
         probability = model_v2.predict_proba(features)[0][1]
         used_model = "v2"
-    if probability > 0.7:
-        tone = "Firm"
-        subject = "Urgent Payment Reminder"
-        body = "Dear Client,\n\nYour invoice is at high risk of delay. Please clear the payment immediately.\n\nThank you."
-    else:
-        tone = "Friendly"
-        subject = "Friendly Payment Reminder"
-        body = "Hi,\n\nJust a gentle reminder about your pending invoice.\n\nThank you."
     
-    send_email(data["client_email"], subject, body)
-
     # Business logic
     recommended_action = "Early reminder" if probability > 0.7 else "Normal reminder"
     tone = "Firm" if probability > 0.7 else "Friendly"

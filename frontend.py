@@ -35,8 +35,7 @@ with col2:
     invoice_gap_days = st.number_input("Invoice Gap (Days)", min_value=0.0, value=30.0)
     industry_category = st.number_input("Industry Category (Encoded)", min_value=0.0, value=1.0)
     reliability_score = st.number_input("Reliability Score (0–1)", min_value=0.0, max_value=1.0, value=0.8)
-    client_email = st.text_input("Client Email")
-
+    
 # ==============================
 # PREDICTION BUTTON
 # ==============================
@@ -50,7 +49,7 @@ if st.button("🔮 Predict Risk"):
         "invoice_gap_days": invoice_gap_days,
         "industry_category": industry_category,
         "reliability_score": reliability_score,
-        "client_email": client_email
+        
     }
 
     try:
