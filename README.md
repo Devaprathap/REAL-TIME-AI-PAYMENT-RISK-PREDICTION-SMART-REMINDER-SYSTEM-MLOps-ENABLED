@@ -1,4 +1,4 @@
-![image](Streamlit Dashboard.png)
+![image](https://github.com/SaipriyaShet/collectiq-api/blob/main/Streamlit%20Dashboard.png)
 
 Real-Time AI-Based Payment Risk Prediction & Smart Reminder System with MLOps
 
