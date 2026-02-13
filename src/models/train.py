@@ -99,3 +99,18 @@ if auc_v2 > auc_v1:
     print("🚀 V2 is better!")
 else:
     print("📌 V1 performs better.")
+    
+from mlflow.tracking import MlflowClient
+
+client = MlflowClient()
+
+experiment = client.get_experiment_by_name("CollectIQ_Payment_Risk")
+runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    order_by=["metrics.roc_auc DESC"]
+)
+
+best_run = runs[0]
+best_model_name = best_run.data.params.get("version")
+
+print("🏆 Best Model:", best_model_name)
