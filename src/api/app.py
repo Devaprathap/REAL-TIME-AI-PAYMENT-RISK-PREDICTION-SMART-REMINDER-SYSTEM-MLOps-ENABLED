@@ -11,9 +11,15 @@ app = FastAPI(title="CollectIQ API")
 # ==============================
 # LOAD MODELS
 # ==============================
+import os
 
-model_v1 = joblib.load("models/xgboost_model.pkl")
-model_v2 = joblib.load("models/xgboost_model_v2.pkl")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MODEL_PATH_1 = os.path.join(BASE_DIR, "models", "xgboost_model.pkl")
+MODEL_PATH_2 = os.path.join(BASE_DIR, "models", "xgboost_model_v2.pkl")
+
+model_v1 = joblib.load(MODEL_PATH_1)
+model_v2 = joblib.load(MODEL_PATH_2)
+
 
 # Default best model (can later auto-pick via MLflow)
 BEST_MODEL = "v2"
