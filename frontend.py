@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 # ==========================================
 
 st.set_page_config(page_title="CollectIQ AI", layout="wide")
-API_URL = "https://collectiq-api.onrender.com"
+API_URL = "https://real-time-ai-payment-risk-prediction.onrender.com"
 
 # ==========================================
 # CUSTOM STYLING
